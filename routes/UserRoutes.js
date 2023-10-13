@@ -10,7 +10,7 @@ const {
     findUserByName,
     forgotPasswordFunction,
     resetPasswordFunction,
-    deleteUserFunction
+    deleteUserFunction, getAllUserFunction
 } = require("../controllers/UserController");
 const {isLoggedIn} = require("../middlewares/Auth");
 const router = require("express").Router();
@@ -33,6 +33,8 @@ router.route("/user/updateProfile").put(isLoggedIn, updateProfileFunction);
 router.route("/user/find").get(isLoggedIn, findUserProfile);
 
 router.route("/users").get(isLoggedIn, findUserByName);
+
+router.route("/user/all").get(isLoggedIn, getAllUserFunction);
 
 router.route("/user/forgotPassword").post(forgotPasswordFunction);
 

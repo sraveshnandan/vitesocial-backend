@@ -1,6 +1,8 @@
 const User = require("../models/User");
 const Post = require("../models/Post");
 const crypto = require("crypto");
+const nodemailer = require("nodemailer");
+const {flatten} = require("express/lib/utils");
 
 //have to add avatar data
 
@@ -112,10 +114,8 @@ exports.FollowOrUnfollowUserFunction = async (req, res) => {
 
         //Searching for user in database with same id
         let userToFollow = await User.findById(req.query.id);
-        console.log(userToFollow);
         //Finding logged-in user details
         let loggedInUser = await User.findById(req.user);
-        console.log(loggedInUser)
         //if user not found
         if (!userToFollow) {
             return res.status(404).json({
@@ -144,7 +144,7 @@ exports.FollowOrUnfollowUserFunction = async (req, res) => {
             await loggedInUser.save();
 
             //Sending the responce
-
+                console.log("finished")
             res.status(200).json({
                 success: true, message: "User Unfollowed."
             })
@@ -277,15 +277,45 @@ exports.forgotPasswordFunction = async (req, res) => {
 
         const resetUrl = `${req.protocol}://${req.get("host")}/user/password/reset/${resetToken}`;
 
-        let text = `You can reset your password by  clicking on this link ${resetUrl}`;
+        let message = ` <h1>Email reset link</h1> <br/><p>You can reset your password by  clicking on this link ${resetUrl}</p>`;
 
         try {
 
-            //in future send email function is implement here
+
+            let transporter = nodemailer.createTransport({
+                host: process.env.SMTP_HOST,
+                port: process.env.SMTP_PORT,
+                auth: {
+                    user: process.env.SMTP_USER,
+                    pass: process.env.SMTP_PASSWORD
+                }
+            });
+
+            //defining mail options
+
+            const mailOptions = {
+                from: process.env.MAIN_EMAIL,
+                to: user.email,
+                subject: "PASSWORD RESET MESSAGE",
+                text: message
+
+            }
+            //final mail sending function.
+            await transporter.sendMail(mailOptions,(err, res)=>{
+                if (err){
+                    return res.send(err);
+                }
+            });
+
+            // send email function is implement here
+
+
 
 
             res.status(200).json({
-                success: true, message: text
+                success: true,
+                message:"Email to your email address.",
+                details:message
             })
 
         } catch (err) {
@@ -315,28 +345,30 @@ exports.forgotPasswordFunction = async (req, res) => {
 exports.resetPasswordFunction = async (req, res) => {
     try {
         const {password} = req.body;
-        console.log(req.params.token);
         const resetPasswordToken = crypto.createHash("sha256").update(req.params.token).digest("hex");
-        const user = await User.find({
+        /*error*/
+        let user = await User.findOne({
             resetPasswordToken, resetPasswordExpire: {$gt: Date.now()},
         });
-        if (!user) {
+        if (user){
+            //Resetting the password
+            user.password = password;
+            //removing token and token expire time
+            user.resetPasswordToken = undefined;
+            user.resetPasswordExpire = undefined;
+            await user.save();
+            //final response
+
+            return  res.status(200).json({
+                success: true, message: "Password reset Successfully."
+            })
+        }else {
             return res.status(422).json({
                 success: false, message: "Token is invalid or expired."
             })
         }
 
-        //Resetting the password
-        user.password = password;
-        //removing token and token expire time
-        user.resetPasswordToken = undefined;
-        user.resetPasswordExpire = undefined;
-        await user.save();
-        //final response
 
-        res.status(200).json({
-            success: true, message: "Password reset Successfully."
-        })
 
 
     } catch (err) {
@@ -406,12 +438,32 @@ exports.findUserByName = async (req, res) => {
     }
 };
 
+//Fetching all user
+
+exports.getAllUserFunction = async (req, res)=>{
+    try{
+        const users = await  User.find().populate("followers following posts");
+        res.status(200).json({
+            success:true,
+            details:users,
+            message:"Details fetched successfully."
+        })
+
+    }catch (e) {
+        res.status(500).json({
+            success:false,
+            message:e.message
+        })
+
+    }
+}
+
 //Delete user account function
 
-exports.deleteUserFunction = async (req, res)=>{
-    try{
+exports.deleteUserFunction = async (req, res) => {
+    try {
         //Stroring all data into variables
-        let user = await  User.findById(req.user);
+        let user = await User.findById(req.user);
         let posts = user.posts;
         let followers = user.followers;
         let following = user.following;
@@ -421,25 +473,25 @@ exports.deleteUserFunction = async (req, res)=>{
         res.clearCookie("token");
 
         //Deleting all posts of the user if exists
-        for (let i = 0; i< posts.length; i++){
+        for (let i = 0; i < posts.length; i++) {
             const post = await Post.findById(posts[i]);
             await post.remove();
         }
 
         //Removing user from followers following
-        for (let i = 0; i< followers.length; i++){
-            const follower = await  User.findById(followers[i]);
+        for (let i = 0; i < followers.length; i++) {
+            const follower = await User.findById(followers[i]);
 
             //Finding the index
-                const index = follower.following.indexOf(followers[user_id]);
-                follower.following.splice(index, 1);
-                await follower.save();
+            const index = follower.following.indexOf(followers[user_id]);
+            follower.following.splice(index, 1);
+            await follower.save();
         }
 
         //Removing user from followings followers
 
-        for (let i=0; i< following.length; i++){
-            const  follows = await User.findById(following[i]);
+        for (let i = 0; i < following.length; i++) {
+            const follows = await User.findById(following[i]);
 
             //finding index
             const index = follows.followers.indexOf(user_id);
@@ -479,10 +531,10 @@ exports.deleteUserFunction = async (req, res)=>{
         });
 
 
-    }catch (err) {
+    } catch (err) {
         res.status(500).json({
-            success:false,
-            message:err.message
+            success: false,
+            message: err.message
         })
 
     }
@@ -491,13 +543,13 @@ exports.deleteUserFunction = async (req, res)=>{
 
 //Get all  posts of logged in user
 
-exports.getmyPosts = async (req, res)=>{
-    try{
+exports.getmyPosts = async (req, res) => {
+    try {
 
-    }catch (e) {
+    } catch (e) {
         res.status(500).json({
-            success:false,
-            message:e.message
+            success: false,
+            message: e.message
         })
 
     }

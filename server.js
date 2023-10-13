@@ -4,13 +4,22 @@ require("dotenv").config();
 //Importing required modules
 
 const express = require("express");
+const  cloudinary = require("cloudinary");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 //Importing Database connection function
 const db = require("./config/db");
-
+//configuring express
 const app = express();
+
+//CDN network for img  configuration
+
+cloudinary.config({
+    cloud_name:process.env.CLOUDINARY_CLINT_NAME,
+    api_key:process.env.CLOUDINARY_CLINT_API_KEY,
+    api_secret: process.env.CLOUDINARY_CLINT_API_SECRET
+});
 
 //Middlewares
 app.use(cookieParser());

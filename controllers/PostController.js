@@ -165,7 +165,7 @@ exports.getFollowingUsersPostsFunction = async (req, res) => {
 
 exports.getAllPostsFunction = async (req, res) => {
     try {
-        const posts = await Post.find().populate("likes");
+        const posts = await Post.find().populate("owner likes comments");
         //if there is no post in database
         if (posts.length === 0) {
             return res.status(200).json({
