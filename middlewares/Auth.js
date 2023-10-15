@@ -6,6 +6,7 @@ exports.isLoggedIn = (req, res, next) => {
         const {token} = req.cookies;
         //if no token found
 
+
         if (!token) {
             return res.json({
                 success: false,
