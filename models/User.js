@@ -91,10 +91,7 @@ UserSchema.methods.generateAuthToken =  function(id){
     return jwt.sign({_id:id},process.env.JWT_SECRET, {expiresIn: "1d"});
 }
 
-//Verifying user's token
-UserSchema.methods.verifyAuthToken = async function(token){
-    return jwt.verify(token, process.env.JWT_SECRET);
-}
+
 
 
 //Generating reset password token

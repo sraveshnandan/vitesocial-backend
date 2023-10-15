@@ -1,5 +1,7 @@
 node_modules
 build
+.idea
+tmp
 npm-debug.log
 .nyc
 .env

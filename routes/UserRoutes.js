@@ -10,10 +10,12 @@ const {
     findUserByName,
     forgotPasswordFunction,
     resetPasswordFunction,
-    deleteUserFunction, getAllUserFunction
+    deleteUserFunction, getAllUserFunction, getmyPosts
 } = require("../controllers/UserController");
 const {isLoggedIn} = require("../middlewares/Auth");
 const router = require("express").Router();
+
+
 
 //general Routes
 router.route("/user/register").post(registerUserFunction);
@@ -34,10 +36,16 @@ router.route("/user/find").get(isLoggedIn, findUserProfile);
 
 router.route("/users").get(isLoggedIn, findUserByName);
 
-router.route("/user/all").get(isLoggedIn, getAllUserFunction);
+router.route("/all/users").get(isLoggedIn, getAllUserFunction);
 
 router.route("/user/forgotPassword").post(forgotPasswordFunction);
 
 router.route("/user/password/reset/:token").put(resetPasswordFunction);
 
+
+//POST realated routes
+
+// get all my posts
+
+router.route("/user/mypost").get(isLoggedIn,getmyPosts);
 module.exports = router;
